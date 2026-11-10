@@ -24,6 +24,17 @@ export function pitchRatio(semitones: number): number {
   return 2 ** (semitones / 12);
 }
 
+export const MIN_TEMPO = 0.5;
+export const MAX_TEMPO = 1.25;
+export const TEMPO_STEP = 0.05;
+
+/** Limita la velocidad al rango permitido y la redondea a pasos de 5 %. */
+export function clampTempo(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  const stepped = Math.round(value / TEMPO_STEP) * TEMPO_STEP;
+  return Math.round(Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, stepped)) * 100) / 100;
+}
+
 export const MIN_LOOP_SEC = 0.5;
 
 export interface LoopRegion {

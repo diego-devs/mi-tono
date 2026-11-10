@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loopPosition, makeLoop } from '../src/audio/math';
+import { clampTempo, loopPosition, makeLoop } from '../src/audio/math';
 import { loadPitch, savePitch, songKey } from '../src/utils/memory';
 
 function fakeStore(initial?: string) {
@@ -11,6 +11,17 @@ function fakeStore(initial?: string) {
     },
   };
 }
+
+describe('tempo math', () => {
+  it('clamps to 50–125 % in 5 % steps', () => {
+    expect(clampTempo(1)).toBe(1);
+    expect(clampTempo(0.1)).toBe(0.5);
+    expect(clampTempo(3)).toBe(1.25);
+    expect(clampTempo(0.87)).toBe(0.85);
+    expect(clampTempo(1 - 0.05 * 3)).toBe(0.85);
+    expect(clampTempo(NaN)).toBe(1);
+  });
+});
 
 describe('loop math', () => {
   it('validates A < B with a minimum length inside the song', () => {

@@ -7,7 +7,7 @@ import {
   type ExportProgress,
   type ExportResult,
 } from '../audio/exporter';
-import { MAX_SEMITONES, MIN_LOOP_SEC, MIN_SEMITONES, clampSemitones, makeLoop } from '../audio/math';
+import { MAX_SEMITONES, MAX_TEMPO, MIN_LOOP_SEC, MIN_SEMITONES, MIN_TEMPO, clampSemitones, clampTempo, makeLoop } from '../audio/math';
 import { getStore, loadPitch, savePitch, songKey } from '../utils/memory';
 import { exportFileName, formatSemitones, formatTime } from '../utils/format';
 import { canShareFile, shareFile, triggerDownload } from '../utils/share';
@@ -46,6 +46,7 @@ export function usePlayer() {
   const songKeyRef = useRef<string | null>(null);
   const [loopA, setLoopA] = useState<number | null>(null);
   const [loopB, setLoopB] = useState<number | null>(null);
+  const [tempo, setTempoState] = useState(1);
 
   const releaseResult = useCallback(() => {
     if (urlRef.current) {
@@ -113,6 +114,7 @@ export function usePlayer() {
       setOriginalPreviewState(false);
       setLoopA(null);
       setLoopB(null);
+      setTempoState(1);
       songKeyRef.current = null;
       setLoad({ status: 'loading', fileName: file.name });
       try {
@@ -184,6 +186,15 @@ export function usePlayer() {
       setOriginalPreviewState(false);
       engine.setSemitones(v);
       if (songKeyRef.current) savePitch(getStore(), songKeyRef.current, v);
+    },
+    [engine],
+  );
+
+  const setTempo = useCallback(
+    (value: number) => {
+      const v = clampTempo(value);
+      setTempoState(v);
+      engine.setTempo(v);
     },
     [engine],
   );
@@ -329,6 +340,10 @@ export function usePlayer() {
       originalPreview,
       loopA,
       loopB,
+      tempo,
+      canSlower: tempo > MIN_TEMPO,
+      canFaster: tempo < MAX_TEMPO,
+      setTempo,
       exportState,
       notice,
       announcement,
@@ -350,7 +365,7 @@ export function usePlayer() {
       saveOrShare,
     }),
     [
-      load, playing, duration, shownPosition, semitones, originalPreview, loopA, loopB, exportState, notice,
+      load, playing, duration, shownPosition, semitones, originalPreview, loopA, loopB, tempo, setTempo, exportState, notice,
       announcement, unlock, openFile, togglePlay, skip, markLoopStart, markLoopEnd, clearLoop, beginScrub, commitScrub, setSemitones,
       setOriginalPreview, startExportNow, cancelExport, saveOrShare,
     ],

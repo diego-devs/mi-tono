@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Help } from './components/Help';
 import { LoopControl } from './components/LoopControl';
 import { PitchControl } from './components/PitchControl';
+import { TempoControl } from './components/TempoControl';
 import { Transport } from './components/Transport';
 import { usePlayer } from './hooks/usePlayer';
 import { isPitchEngineSupported } from './audio/pitch';
@@ -109,6 +110,8 @@ export function App() {
         onChange={player.setSemitones}
         onOriginalPreview={player.setOriginalPreview}
       />
+
+      <TempoControl tempo={player.tempo} disabled={controlsDisabled} onChange={player.setTempo} />
 
       <ExportPanel
         state={player.exportState}

@@ -1,6 +1,6 @@
 {
   "name": "mi-tono",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Mi Tono: transposición de canciones MP3 en el dispositivo (PWA)",
   "private": true,
   "scripts": {
