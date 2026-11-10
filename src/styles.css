@@ -232,3 +232,16 @@ progress {
     animation: none !important;
   }
 }
+
+.transport .row {
+  flex-wrap: nowrap;
+}
+
+.transport .row .primary {
+  flex: 1;
+}
+
+.loop .row button {
+  flex: 1;
+}
+

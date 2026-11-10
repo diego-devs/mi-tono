@@ -18,4 +18,7 @@ Preparación: abrir la app por HTTPS con conexión, esperar “Lista para usar s
 - [ ] Modo avión: cerrar por completo la app, activar modo avión, reabrir (Safari y app instalada), abrir un MP3, reproducir, cambiar tono y exportar.
 - [ ] Interrupciones: llamada/Siri/alarma durante la reproducción → al volver debe quedar en pausa con aviso; bloquear pantalla y volver durante una exportación → reintentar si no continúa.
 - [ ] Rotación y tamaño de texto grande: sin scroll horizontal; botones ≥ 44 pt; zonas seguras respetadas.
-- [ ] Actualización: publicar una versión nueva; la app ofrece “Actualizar la app” solo en reposo.
+- [ ] Saltar ±10 s en reproducción y en pausa.
+- [ ] Bucle A–B: marcar A y B durante la reproducción; el fragmento se repite sin huecos largos ni clics fuertes; cambiar el tono dentro del bucle; “Quitar bucle” continúa la canción.
+- [ ] Recordar tono: ajustar −3, cerrar la app, reabrir el mismo archivo → se restaura con aviso; con otro archivo empieza en 0.
+- [ ] Actualización: publicar una versión nueva; la app ofrece “Actualizar la app” solo en reposo; Ayuda → Versión cambia.

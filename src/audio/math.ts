@@ -24,6 +24,28 @@ export function pitchRatio(semitones: number): number {
   return 2 ** (semitones / 12);
 }
 
+export const MIN_LOOP_SEC = 0.5;
+
+export interface LoopRegion {
+  start: number;
+  end: number;
+}
+
+/** Devuelve la región si es válida (A antes que B, al menos MIN_LOOP_SEC y dentro de la canción). */
+export function makeLoop(start: number, end: number, duration: number): LoopRegion | null {
+  if (![start, end, duration].every(Number.isFinite)) return null;
+  if (start < 0 || end > duration + 1e-6 || end - start < MIN_LOOP_SEC) return null;
+  return { start, end: Math.min(end, duration) };
+}
+
+/** Posición de la canción tras `elapsed` segundos desde `offset`, dando la vuelta dentro del bucle si lo hay. */
+export function loopPosition(offset: number, elapsed: number, loop: LoopRegion | null, duration: number): number {
+  const raw = offset + elapsed;
+  if (!loop) return Math.min(raw, duration);
+  if (raw < loop.end) return raw;
+  return loop.start + ((raw - loop.start) % (loop.end - loop.start));
+}
+
 /** Frecuencia de muestreo admitida por el codificador MP3; las demás se convierten a 44,1 kHz. */
 export function exportSampleRate(inputRate: number): number {
   return SUPPORTED_EXPORT_RATES.includes(inputRate) ? inputRate : FALLBACK_EXPORT_RATE;

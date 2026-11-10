@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { ExportPanel } from './components/ExportPanel';
 import { Header } from './components/Header';
 import { Help } from './components/Help';
+import { LoopControl } from './components/LoopControl';
 import { PitchControl } from './components/PitchControl';
 import { Transport } from './components/Transport';
 import { usePlayer } from './hooks/usePlayer';
@@ -85,8 +86,18 @@ export function App() {
         playing={player.playing}
         disabled={controlsDisabled}
         onToggle={() => void player.togglePlay()}
+        onSkip={player.skip}
         onScrub={player.beginScrub}
         onCommit={player.commitScrub}
+      />
+
+      <LoopControl
+        loopA={player.loopA}
+        loopB={player.loopB}
+        disabled={controlsDisabled}
+        onMarkA={player.markLoopStart}
+        onMarkB={player.markLoopEnd}
+        onClear={player.clearLoop}
       />
 
       <PitchControl

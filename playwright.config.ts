@@ -11,12 +11,12 @@ export default defineConfig({
     {
       command: 'npx vite --port 5173 --strictPort',
       url: 'http://localhost:5173',
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
     },
     {
       command: 'npm run build && npx vite preview --port 4173 --strictPort',
       url: 'http://localhost:4173',
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
   ],

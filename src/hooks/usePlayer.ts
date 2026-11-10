@@ -7,8 +7,9 @@ import {
   type ExportProgress,
   type ExportResult,
 } from '../audio/exporter';
-import { MAX_SEMITONES, MIN_SEMITONES, clampSemitones } from '../audio/math';
-import { exportFileName } from '../utils/format';
+import { MAX_SEMITONES, MIN_LOOP_SEC, MIN_SEMITONES, clampSemitones, makeLoop } from '../audio/math';
+import { getStore, loadPitch, savePitch, songKey } from '../utils/memory';
+import { exportFileName, formatSemitones, formatTime } from '../utils/format';
 import { canShareFile, shareFile, triggerDownload } from '../utils/share';
 
 export type LoadState =
@@ -42,6 +43,9 @@ export function usePlayer() {
   const exportIdRef = useRef(0);
   const loadIdRef = useRef(0);
   const urlRef = useRef<string | null>(null);
+  const songKeyRef = useRef<string | null>(null);
+  const [loopA, setLoopA] = useState<number | null>(null);
+  const [loopB, setLoopB] = useState<number | null>(null);
 
   const releaseResult = useCallback(() => {
     if (urlRef.current) {
@@ -107,10 +111,21 @@ export function usePlayer() {
       setScrub(null);
       setSemitonesState(0);
       setOriginalPreviewState(false);
+      setLoopA(null);
+      setLoopB(null);
+      songKeyRef.current = null;
       setLoad({ status: 'loading', fileName: file.name });
       try {
         const track = await engine.load(file);
         if (id !== loadIdRef.current) return;
+        songKeyRef.current = songKey(file.name, file.size);
+        const saved = loadPitch(getStore(), songKeyRef.current);
+        if (saved !== null) {
+          const v = clampSemitones(saved);
+          engine.setSemitones(v);
+          setSemitonesState(v);
+          setNotice(`Se restauró tu tono para esta canción: ${formatSemitones(v)}.`);
+        }
         setLoad({ status: 'ready', track });
         announce(`Canción lista: ${track.name}`);
       } catch (e) {
@@ -168,9 +183,57 @@ export function usePlayer() {
       setSemitonesState(v);
       setOriginalPreviewState(false);
       engine.setSemitones(v);
+      if (songKeyRef.current) savePitch(getStore(), songKeyRef.current, v);
     },
     [engine],
   );
+
+  const skip = useCallback(
+    (delta: number) => {
+      const buffer = engine.getBuffer();
+      if (!buffer) return;
+      engine.seek(Math.min(Math.max(0, engine.getPosition() + delta), buffer.duration));
+      setPosition(engine.getPosition());
+    },
+    [engine],
+  );
+
+  const markLoopStart = useCallback(() => {
+    const a = engine.getPosition();
+    setNotice('');
+    setLoopA(a);
+    if (loopB !== null && makeLoop(a, loopB, engine.getBuffer()?.duration ?? 0)) {
+      engine.setLoop({ start: a, end: loopB });
+    } else {
+      setLoopB(null);
+      engine.setLoop(null);
+    }
+    announce(`Inicio del bucle en ${formatTime(a)}`);
+  }, [engine, loopB, announce]);
+
+  const markLoopEnd = useCallback(() => {
+    if (loopA === null) {
+      setNotice('Marca primero el punto A.');
+      return;
+    }
+    const region = makeLoop(loopA, engine.getPosition(), engine.getBuffer()?.duration ?? 0);
+    if (!region) {
+      setNotice(`El punto B debe quedar al menos ${MIN_LOOP_SEC} s después de A.`);
+      return;
+    }
+    setNotice('');
+    setLoopB(region.end);
+    engine.setLoop(region);
+    setPosition(engine.getPosition());
+    announce(`Bucle activo de ${formatTime(region.start)} a ${formatTime(region.end)}`);
+  }, [engine, loopA, announce]);
+
+  const clearLoop = useCallback(() => {
+    setLoopA(null);
+    setLoopB(null);
+    engine.setLoop(null);
+    announce('Bucle quitado');
+  }, [engine, announce]);
 
   const setOriginalPreview = useCallback(
     (value: boolean) => {
@@ -264,6 +327,8 @@ export function usePlayer() {
       position: shownPosition,
       semitones,
       originalPreview,
+      loopA,
+      loopB,
       exportState,
       notice,
       announcement,
@@ -272,6 +337,10 @@ export function usePlayer() {
       unlock,
       openFile,
       togglePlay,
+      skip,
+      markLoopStart,
+      markLoopEnd,
+      clearLoop,
       beginScrub,
       commitScrub,
       setSemitones,
@@ -281,8 +350,8 @@ export function usePlayer() {
       saveOrShare,
     }),
     [
-      load, playing, duration, shownPosition, semitones, originalPreview, exportState, notice,
-      announcement, unlock, openFile, togglePlay, beginScrub, commitScrub, setSemitones,
+      load, playing, duration, shownPosition, semitones, originalPreview, loopA, loopB, exportState, notice,
+      announcement, unlock, openFile, togglePlay, skip, markLoopStart, markLoopEnd, clearLoop, beginScrub, commitScrub, setSemitones,
       setOriginalPreview, startExportNow, cancelExport, saveOrShare,
     ],
   );

@@ -12,6 +12,7 @@ export function Help() {
         <li>
           <a href="licenses/LGPL-3.0.txt">Licencias de terceros</a>
         </li>
+        <li>Versión {__APP_VERSION__}</li>
       </ul>
     </details>
   );
