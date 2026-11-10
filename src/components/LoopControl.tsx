@@ -1,4 +1,5 @@
 import { formatTime } from '../utils/format';
+import { MarkerIcon } from './MarkerIcon';
 
 interface Props {
   loopA: number | null;
@@ -14,11 +15,25 @@ export function LoopControl({ loopA, loopB, disabled, onMarkA, onMarkB, onClear 
   return (
     <section className="loop" aria-label="Bucle A–B">
       <div className="row">
-        <button type="button" className="secondary" disabled={disabled} onClick={onMarkA}>
-          Marcar A
+        <button
+          type="button"
+          className="secondary marker-button"
+          aria-label="Marcar A (inicio del bucle)"
+          title="Marcar inicio del bucle"
+          disabled={disabled}
+          onClick={onMarkA}
+        >
+          <MarkerIcon kind="a" size={26} />
         </button>
-        <button type="button" className="secondary" disabled={disabled || loopA === null} onClick={onMarkB}>
-          Marcar B
+        <button
+          type="button"
+          className="secondary marker-button"
+          aria-label="Marcar B (final del bucle)"
+          title="Marcar final del bucle"
+          disabled={disabled || loopA === null}
+          onClick={onMarkB}
+        >
+          <MarkerIcon kind="b" size={26} />
         </button>
         <button type="button" className="secondary" disabled={disabled || loopA === null} onClick={onClear}>
           Quitar bucle

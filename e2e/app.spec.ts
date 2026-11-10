@@ -121,10 +121,24 @@ test('practice: skip ±10 s, A–B loop UI, remembered pitch per song', async ({
   await page.getByRole('button', { name: 'Marcar B' }).click();
   await expect(status).toContainText('Repitiendo de 0:10 a 0:20');
 
+  // Las marcas doradas quedan sobre la barra, en la posición exacta (la barra reserva 12 px por lado para el pulgar).
+  const bar = await page.getByLabel('Posición de la canción').boundingBox();
+  const xOf = async (id: string) => {
+    const box = await page.getByTestId(id).boundingBox();
+    return box!.x;
+  };
+  const expected = (t: number) => bar!.x + 12 + (bar!.width - 24) * (t / 30);
+  expect(Math.abs((await xOf('marker-a')) - expected(10))).toBeLessThan(3);
+  expect(Math.abs((await xOf('marker-b')) - expected(20))).toBeLessThan(3);
+  await expect(page.getByTestId('loop-region')).toBeVisible();
+  await page.locator('main').screenshot({ path: 'test-results/markers.png' });
+
   await page.getByRole('button', { name: 'Reproducir' }).click();
   await page.waitForTimeout(500);
   await page.getByRole('button', { name: 'Quitar bucle' }).click();
   await expect(status).toContainText('Marca A y B');
+  await expect(page.getByTestId('marker-a')).toHaveCount(0);
+  await expect(page.getByTestId('marker-b')).toHaveCount(0);
   await page.getByRole('button', { name: 'Pausa' }).click();
 
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Bajar un semitono' }).click();

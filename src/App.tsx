@@ -85,6 +85,8 @@ export function App() {
         position={player.position}
         playing={player.playing}
         disabled={controlsDisabled}
+        loopA={player.loopA}
+        loopB={player.loopB}
         onToggle={() => void player.togglePlay()}
         onSkip={player.skip}
         onScrub={player.beginScrub}
