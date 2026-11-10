@@ -6,11 +6,12 @@ interface Props {
   playing: boolean;
   disabled: boolean;
   onToggle: () => void;
+  onSkip: (delta: number) => void;
   onScrub: (value: number) => void;
   onCommit: () => void;
 }
 
-export function Transport({ duration, position, playing, disabled, onToggle, onScrub, onCommit }: Props) {
+export function Transport({ duration, position, playing, disabled, onToggle, onSkip, onScrub, onCommit }: Props) {
   const ended = duration > 0 && position >= duration - 0.05 && !playing;
   return (
     <section className="transport" aria-label="Reproducción">
@@ -34,9 +35,17 @@ export function Transport({ duration, position, playing, disabled, onToggle, onS
         <span>{formatTime(position)}</span>
         <span>{formatTime(duration)}</span>
       </div>
-      <button type="button" className="primary big" onClick={onToggle} disabled={disabled}>
-        {playing ? 'Pausa' : ended ? 'Reproducir de nuevo' : 'Reproducir'}
-      </button>
+      <div className="row">
+        <button type="button" className="secondary" disabled={disabled} aria-label="Retroceder 10 segundos" onClick={() => onSkip(-10)}>
+          −10 s
+        </button>
+        <button type="button" className="primary big" onClick={onToggle} disabled={disabled}>
+          {playing ? 'Pausa' : ended ? 'Reproducir de nuevo' : 'Reproducir'}
+        </button>
+        <button type="button" className="secondary" disabled={disabled} aria-label="Adelantar 10 segundos" onClick={() => onSkip(10)}>
+          +10 s
+        </button>
+      </div>
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import type { SoundTouchNode } from '@soundtouchjs/audio-worklet';
-import { OUTPUT_GAIN, PROCESSOR_LATENCY_SEC, clampSemitones } from './math';
+import { OUTPUT_GAIN, PROCESSOR_LATENCY_SEC, clampSemitones, loopPosition, type LoopRegion } from './math';
 import { createPitchNode, registerPitchProcessor } from './pitch';
 
 export interface LoadedTrack {
@@ -21,6 +21,8 @@ export interface AudioEngine {
   seek(seconds: number): void;
   setSemitones(semitones: number): void;
   setOriginalPreview(value: boolean): void;
+  /** Repite la región indicada hasta que se pase `null`; no afecta a la exportación. */
+  setLoop(loop: LoopRegion | null): void;
   getPosition(): number;
   isPlaying(): boolean;
   getBuffer(): AudioBuffer | null;
@@ -64,6 +66,7 @@ export class PitchPlayer implements AudioEngine {
   private chain: Chain | null = null;
   private semitones = 0;
   private originalPreview = false;
+  private loop: LoopRegion | null = null;
   private playing = false;
   private offset = 0;
   private startedAt = 0;
@@ -130,6 +133,7 @@ export class PitchPlayer implements AudioEngine {
     this.offset = 0;
     this.semitones = 0;
     this.originalPreview = false;
+    this.loop = null;
     return {
       name: file.name,
       duration: decoded.duration,
@@ -154,8 +158,7 @@ export class PitchPlayer implements AudioEngine {
   getPosition(): number {
     if (!this.buffer) return 0;
     if (!this.playing || !this.ctx || !this.chain) return this.offset;
-    const pos = this.offset + (this.ctx.currentTime - this.startedAt);
-    return Math.min(pos, this.buffer.duration);
+    return loopPosition(this.offset, this.ctx.currentTime - this.startedAt, this.loop, this.buffer.duration);
   }
 
   async play(): Promise<void> {
@@ -209,13 +212,26 @@ export class PitchPlayer implements AudioEngine {
     this.applyMix(false);
   }
 
+  setLoop(loop: LoopRegion | null): void {
+    const buffer = this.buffer;
+    this.loop = loop && buffer ? { start: loop.start, end: Math.min(loop.end, buffer.duration) } : null;
+    if (this.playing && this.chain && this.buffer) {
+      // La región cambia las propiedades del origen: se reinicia la cadena en la posición actual.
+      const pos = this.getPosition();
+      this.teardownChain();
+      this.startChain(pos);
+    } else if (!this.playing && this.loop && this.offset >= this.loop.end) {
+      this.offset = this.loop.start;
+    }
+  }
+
   private useProcessed(): boolean {
     return this.semitones !== 0 && !this.originalPreview;
   }
 
   private freezePosition() {
     if (this.buffer && this.ctx && this.playing && this.chain) {
-      this.offset = Math.min(this.offset + (this.ctx.currentTime - this.startedAt), this.buffer.duration);
+      this.offset = loopPosition(this.offset, this.ctx.currentTime - this.startedAt, this.loop, this.buffer.duration);
     }
   }
 
@@ -225,8 +241,15 @@ export class PitchPlayer implements AudioEngine {
     const master = this.master!;
     this.teardownChain();
 
+    const loop = this.loop;
+    if (loop && offset >= loop.end) offset = loop.start;
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    if (loop) {
+      source.loop = true;
+      source.loopStart = loop.start;
+      source.loopEnd = loop.end;
+    }
     const keepAlive = ctx.createConstantSource();
     keepAlive.offset.value = 0;
     const pitch = createPitchNode(ctx, this.semitones, buffer.numberOfChannels);
@@ -255,8 +278,7 @@ export class PitchPlayer implements AudioEngine {
     this.offset = offset;
     this.chain = { source, keepAlive, pitch, direct, delay, processed, fade, audible: procOn };
 
-    const remaining = buffer.duration - offset;
-    keepAlive.stop(when + remaining + END_TAIL_SEC);
+    if (!loop) keepAlive.stop(when + buffer.duration - offset + END_TAIL_SEC);
     const token = this.playToken;
     keepAlive.onended = () => {
       if (token === this.playToken && this.playing && this.chain?.keepAlive === keepAlive) this.finish();

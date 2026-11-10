@@ -100,6 +100,48 @@ test('UI: controls, limits, compare, reset', async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
+test('practice: skip ±10 s, A–B loop UI, remembered pitch per song', async ({ page }) => {
+  const file = mp3File('practica.mp3', 30, [440, 660]);
+  await openSong(page, file);
+  const time = page.locator('.times span').first();
+  await page.getByRole('button', { name: 'Adelantar 10 segundos' }).click();
+  await expect(time).toHaveText('0:10');
+  await page.getByRole('button', { name: 'Retroceder 10 segundos' }).click();
+  await page.getByRole('button', { name: 'Retroceder 10 segundos' }).click();
+  await expect(time).toHaveText('0:00');
+
+  const status = page.getByTestId('loop-status');
+  await expect(page.getByRole('button', { name: 'Marcar B' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Adelantar 10 segundos' }).click();
+  await page.getByRole('button', { name: 'Marcar A' }).click();
+  await expect(status).toContainText('A en 0:10');
+  await page.getByRole('button', { name: 'Marcar B' }).click(); // B = A: demasiado corto
+  await expect(page.locator('.notice')).toContainText('al menos');
+  await page.getByRole('button', { name: 'Adelantar 10 segundos' }).click();
+  await page.getByRole('button', { name: 'Marcar B' }).click();
+  await expect(status).toContainText('Repitiendo de 0:10 a 0:20');
+
+  await page.getByRole('button', { name: 'Reproducir' }).click();
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Quitar bucle' }).click();
+  await expect(status).toContainText('Marca A y B');
+  await page.getByRole('button', { name: 'Pausa' }).click();
+
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Bajar un semitono' }).click();
+  await expect(page.getByLabel('Ajuste de tono')).toHaveText('−4 semitonos');
+  await page.reload();
+  await openSong(page, file);
+  await expect(page.getByLabel('Ajuste de tono')).toHaveText('−4 semitonos');
+  await expect(page.locator('.notice')).toContainText('Se restauró tu tono');
+  await openSong(page, mp3File('otra.mp3', 5, [300, 300]));
+  await expect(page.getByLabel('Ajuste de tono')).toHaveText('0 semitonos');
+  await openSong(page, file);
+  await page.getByRole('button', { name: 'Restablecer' }).click();
+  await page.reload();
+  await openSong(page, file);
+  await expect(page.getByLabel('Ajuste de tono')).toHaveText('0 semitonos');
+});
+
 test('export -3 st: real MP3 with correct pitch, duration, stereo and file name', async ({ page }) => {
   await openSong(page, mp3File('Mi canción.mp3', 8, [440, 660], 44100));
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Bajar un semitono' }).click();

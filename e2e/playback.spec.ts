@@ -97,6 +97,47 @@ test.describe('real-time playback (dev harness)', () => {
     expect(r.playing).toBe(true);
   });
 
+  test('A–B loop repeats the region (also pitch-shifted) and clearing it continues playback', async ({ page }) => {
+    const r = await run<any>(page, `
+      await player.load(fileA);
+      const sr = player.getBuffer().sampleRate;
+      const [al] = attach();
+      let ended = 0;
+      player.subscribe((e) => { if (e === 'ended') ended++; });
+      player.setSemitones(-3);
+      player.setLoop({ start: 2, end: 3 });
+      player.seek(2.2);
+      await player.play();
+      const samples = [];
+      for (let i = 0; i < 12; i++) { await sleep(250); samples.push(player.getPosition()); }
+      const f = listen(al, sr).f;
+      const stillPlaying = player.isPlaying();
+      player.setLoop(null);
+      const afterClearStart = player.getPosition();
+      await sleep(1500);
+      const afterClear = player.getPosition();
+      player.pause();
+      player.setLoop({ start: 1, end: 2 });
+      player.seek(5); // fuera del bucle: al reproducir vuelve al inicio del bucle
+      await player.play();
+      await sleep(300);
+      const outside = player.getPosition();
+      player.pause();
+      return { samples, f, stillPlaying, afterClearStart, afterClear, ended, outside };
+    `);
+    for (const p of r.samples) {
+      expect(p).toBeGreaterThanOrEqual(1.99);
+      expect(p).toBeLessThanOrEqual(3.01);
+    }
+    expect(Math.max(...r.samples) - Math.min(...r.samples)).toBeGreaterThan(0.5); // dio varias vueltas
+    expect(r.stillPlaying).toBe(true);
+    expect(r.ended).toBe(0);
+    expect(Math.abs(12 * Math.log2(r.f / (440 * 2 ** (-3 / 12))))).toBeLessThan(0.1);
+    expect(r.afterClear - r.afterClearStart).toBeGreaterThan(1.2);
+    expect(r.outside).toBeGreaterThanOrEqual(0.99);
+    expect(r.outside).toBeLessThanOrEqual(2.01);
+  });
+
   test('pause keeps position, seek while paused stays paused, no duplicate playback', async ({ page }) => {
     const r = await run<any>(page, `
       await player.load(fileA);
