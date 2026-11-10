@@ -14,6 +14,52 @@
     <link rel="icon" type="image/png" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Mi Tono</title>
+    <script>
+      // Auto-reparación: si los archivos de la app no cargan (caché del service worker a medias tras una
+      // actualización) o la app no arranca, borra caché y service worker y recarga una sola vez.
+      (function () {
+        var KEY = 'mi-tono:autoheal';
+        function heal() {
+          try {
+            if (sessionStorage.getItem(KEY)) return;
+            sessionStorage.setItem(KEY, '1');
+          } catch (e) {
+            return;
+          }
+          var tasks = [];
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+            tasks.push(
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                return Promise.all(regs.map(function (r) { return r.unregister(); }));
+              }),
+            );
+          }
+          if (window.caches) {
+            tasks.push(
+              caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+              }),
+            );
+          }
+          Promise.all(tasks).then(
+            function () { location.reload(); },
+            function () { location.reload(); },
+          );
+        }
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target;
+            if (t && (t.tagName === 'SCRIPT' || (t.tagName === 'LINK' && t.rel === 'stylesheet'))) heal();
+          },
+          true,
+        );
+        window.setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && !root.firstChild) heal();
+        }, 8000);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

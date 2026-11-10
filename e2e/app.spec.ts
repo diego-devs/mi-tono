@@ -59,6 +59,20 @@ test.beforeEach(async ({ page }) => {
   await page.goto(PROD);
 });
 
+test('auto-heal: if the app script fails to load, it clears caches and recovers on its own', async ({ page }) => {
+  let blocked = false;
+  await page.route('**/assets/index-*.js', (route) => {
+    if (!blocked) {
+      blocked = true;
+      return route.abort();
+    }
+    return route.continue();
+  });
+  await page.goto(PROD);
+  await expect(page.getByRole('heading', { name: 'Mi Tono' })).toBeVisible({ timeout: 15000 });
+  expect(blocked).toBe(true);
+});
+
 test('UI: controls, limits, compare, reset', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Mi Tono' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reproducir' })).toBeDisabled();
