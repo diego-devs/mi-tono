@@ -1,5 +1,5 @@
 import type { SoundTouchNode } from '@soundtouchjs/audio-worklet';
-import { OUTPUT_GAIN, PROCESSOR_LATENCY_SEC, clampSemitones, loopPosition, type LoopRegion } from './math';
+import { OUTPUT_GAIN, PROCESSOR_LATENCY_SEC, clampSemitones, clampTempo, loopPosition, type LoopRegion } from './math';
 import { createPitchNode, registerPitchProcessor } from './pitch';
 
 export interface LoadedTrack {
@@ -23,6 +23,8 @@ export interface AudioEngine {
   setOriginalPreview(value: boolean): void;
   /** Repite la región indicada hasta que se pase `null`; no afecta a la exportación. */
   setLoop(loop: LoopRegion | null): void;
+  /** Velocidad de reproducción (1 = original) sin cambiar el tono; no afecta a la exportación. */
+  setTempo(tempo: number): void;
   getPosition(): number;
   isPlaying(): boolean;
   getBuffer(): AudioBuffer | null;
@@ -67,6 +69,7 @@ export class PitchPlayer implements AudioEngine {
   private semitones = 0;
   private originalPreview = false;
   private loop: LoopRegion | null = null;
+  private tempo = 1;
   private playing = false;
   private offset = 0;
   private startedAt = 0;
@@ -134,6 +137,7 @@ export class PitchPlayer implements AudioEngine {
     this.semitones = 0;
     this.originalPreview = false;
     this.loop = null;
+    this.tempo = 1;
     return {
       name: file.name,
       duration: decoded.duration,
@@ -158,7 +162,7 @@ export class PitchPlayer implements AudioEngine {
   getPosition(): number {
     if (!this.buffer) return 0;
     if (!this.playing || !this.ctx || !this.chain) return this.offset;
-    return loopPosition(this.offset, this.ctx.currentTime - this.startedAt, this.loop, this.buffer.duration);
+    return loopPosition(this.offset, (this.ctx.currentTime - this.startedAt) * this.tempo, this.loop, this.buffer.duration);
   }
 
   async play(): Promise<void> {
@@ -209,7 +213,22 @@ export class PitchPlayer implements AudioEngine {
 
   setOriginalPreview(value: boolean): void {
     this.originalPreview = value;
-    this.applyMix(false);
+    // Con otra velocidad la ruta procesada sigue activa y su parámetro de tono cambia: requiere fundido.
+    this.applyMix(this.tempo !== 1);
+  }
+
+  setTempo(tempo: number): void {
+    const next = clampTempo(tempo);
+    if (next === this.tempo) return;
+    if (this.playing && this.chain && this.buffer) {
+      // La velocidad se fija al crear la cadena; se reinicia en la posición actual.
+      const pos = this.getPosition();
+      this.tempo = next;
+      this.teardownChain();
+      this.startChain(pos);
+    } else {
+      this.tempo = next;
+    }
   }
 
   setLoop(loop: LoopRegion | null): void {
@@ -226,12 +245,16 @@ export class PitchPlayer implements AudioEngine {
   }
 
   private useProcessed(): boolean {
-    return this.semitones !== 0 && !this.originalPreview;
+    return this.effectivePitch() !== 0 || this.tempo !== 1;
+  }
+
+  private effectivePitch(): number {
+    return this.originalPreview ? 0 : this.semitones;
   }
 
   private freezePosition() {
     if (this.buffer && this.ctx && this.playing && this.chain) {
-      this.offset = loopPosition(this.offset, this.ctx.currentTime - this.startedAt, this.loop, this.buffer.duration);
+      this.offset = loopPosition(this.offset, (this.ctx.currentTime - this.startedAt) * this.tempo, this.loop, this.buffer.duration);
     }
   }
 
@@ -252,7 +275,9 @@ export class PitchPlayer implements AudioEngine {
     }
     const keepAlive = ctx.createConstantSource();
     keepAlive.offset.value = 0;
-    const pitch = createPitchNode(ctx, this.semitones, buffer.numberOfChannels);
+    const pitch = createPitchNode(ctx, this.effectivePitch(), buffer.numberOfChannels);
+    source.playbackRate.value = this.tempo;
+    pitch.playbackRate.value = this.tempo;
     const direct = ctx.createGain();
     const delay = ctx.createDelay(1);
     delay.delayTime.value = PROCESSOR_LATENCY_SEC;
@@ -278,7 +303,7 @@ export class PitchPlayer implements AudioEngine {
     this.offset = offset;
     this.chain = { source, keepAlive, pitch, direct, delay, processed, fade, audible: procOn };
 
-    if (!loop) keepAlive.stop(when + buffer.duration - offset + END_TAIL_SEC);
+    if (!loop) keepAlive.stop(when + (buffer.duration - offset) / this.tempo + END_TAIL_SEC);
     const token = this.playToken;
     keepAlive.onended = () => {
       if (token === this.playToken && this.playing && this.chain?.keepAlive === keepAlive) this.finish();
@@ -317,7 +342,7 @@ export class PitchPlayer implements AudioEngine {
     const ctx = this.ctx;
     if (!c || !ctx) return;
     clearTimeout(this.mixTimer);
-    const target = this.semitones;
+    const target = this.effectivePitch();
     const want = this.useProcessed();
     const wasAudible = c.audible;
     c.audible = want;
@@ -358,6 +383,7 @@ export class PitchPlayer implements AudioEngine {
     this.offset = 0;
     this.semitones = 0;
     this.originalPreview = false;
+    this.tempo = 1;
   }
 
   dispose(): void {

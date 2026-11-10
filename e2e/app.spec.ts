@@ -70,6 +70,16 @@ test('UI: controls, limits, compare, reset', async ({ page }) => {
   const up = page.getByRole('button', { name: 'Subir un semitono' });
   for (let i = 0; i < 3; i++) await down.click();
   await expect(page.getByLabel('Ajuste de tono')).toHaveText('−3 semitonos');
+  const slower = page.getByRole('button', { name: 'Más lento' });
+  await expect(page.getByLabel('Velocidad de práctica')).toHaveText('100 %');
+  await slower.click();
+  await slower.click();
+  await expect(page.getByLabel('Velocidad de práctica')).toHaveText('90 %');
+  for (let i = 0; i < 8; i++) await slower.click();
+  await expect(page.getByLabel('Velocidad de práctica')).toHaveText('50 %');
+  await expect(slower).toBeDisabled();
+  await page.getByRole('button', { name: 'Velocidad normal' }).click();
+  await expect(page.getByLabel('Velocidad de práctica')).toHaveText('100 %');
   for (let i = 0; i < 9; i++) await down.click();
   await expect(down).toBeDisabled();
   await expect(page.getByLabel('Ajuste de tono')).toHaveText('−12 semitonos');

@@ -138,6 +138,50 @@ test.describe('real-time playback (dev harness)', () => {
     expect(r.outside).toBeLessThanOrEqual(2.01);
   });
 
+  test('tempo changes speed without changing pitch; Original stays at the same speed', async ({ page }) => {
+    const r = await run<any>(page, `
+      await player.load(fileA);
+      const sr = player.getBuffer().sampleRate;
+      const [al] = attach();
+      player.setSemitones(-3);
+      player.setTempo(0.75);
+      await player.play();
+      await sleep(1000);
+      const p0 = player.getPosition(); const t0 = performance.now();
+      const fSlow = listen(al, sr).f;
+      await sleep(2000);
+      const p1 = player.getPosition(); const wall = (performance.now() - t0) / 1000;
+      player.setOriginalPreview(true);
+      await sleep(900);
+      const fOrig = listen(al, sr).f;
+      player.setOriginalPreview(false);
+      await sleep(900);
+      const fBack = listen(al, sr).f;
+      const beforeChange = player.getPosition();
+      player.setTempo(1.25);
+      const afterChange = player.getPosition();
+      await sleep(1500);
+      const fFast = listen(al, sr).f;
+      player.setTempo(1);
+      player.setSemitones(0);
+      await sleep(900);
+      const fPlain = listen(al, sr).f;
+      const playing = player.isPlaying();
+      player.pause();
+      return { ratio: (p1 - p0) / wall, fSlow, fOrig, fBack, fFast, fPlain, beforeChange, afterChange, playing };
+    `);
+    const err = (m: number, e: number) => Math.abs(12 * Math.log2(m / e));
+    expect(r.ratio).toBeGreaterThan(0.68);
+    expect(r.ratio).toBeLessThan(0.82);
+    expect(err(r.fSlow, 440 * 2 ** (-3 / 12))).toBeLessThan(0.15);
+    expect(err(r.fOrig, 440)).toBeLessThan(0.15);
+    expect(err(r.fBack, 440 * 2 ** (-3 / 12))).toBeLessThan(0.15);
+    expect(err(r.fFast, 440 * 2 ** (-3 / 12))).toBeLessThan(0.15);
+    expect(err(r.fPlain, 440)).toBeLessThan(0.15);
+    expect(Math.abs(r.afterChange - r.beforeChange)).toBeLessThan(0.2);
+    expect(r.playing).toBe(true);
+  });
+
   test('pause keeps position, seek while paused stays paused, no duplicate playback', async ({ page }) => {
     const r = await run<any>(page, `
       await player.load(fileA);
