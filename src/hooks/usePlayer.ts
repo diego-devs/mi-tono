@@ -47,6 +47,7 @@ export function usePlayer() {
   const [loopA, setLoopA] = useState<number | null>(null);
   const [loopB, setLoopB] = useState<number | null>(null);
   const [tempo, setTempoState] = useState(1);
+  const [songId, setSongId] = useState<string | null>(null);
 
   const releaseResult = useCallback(() => {
     if (urlRef.current) {
@@ -116,11 +117,13 @@ export function usePlayer() {
       setLoopB(null);
       setTempoState(1);
       songKeyRef.current = null;
+      setSongId(null);
       setLoad({ status: 'loading', fileName: file.name });
       try {
         const track = await engine.load(file);
         if (id !== loadIdRef.current) return;
         songKeyRef.current = songKey(file.name, file.size);
+        setSongId(songKeyRef.current);
         const saved = loadPitch(getStore(), songKeyRef.current);
         if (saved !== null) {
           const v = clampSemitones(saved);
@@ -341,6 +344,7 @@ export function usePlayer() {
       loopA,
       loopB,
       tempo,
+      songId,
       canSlower: tempo > MIN_TEMPO,
       canFaster: tempo < MAX_TEMPO,
       setTempo,
@@ -365,7 +369,7 @@ export function usePlayer() {
       saveOrShare,
     }),
     [
-      load, playing, duration, shownPosition, semitones, originalPreview, loopA, loopB, tempo, setTempo, exportState, notice,
+      load, playing, duration, shownPosition, semitones, originalPreview, loopA, loopB, tempo, songId, setTempo, exportState, notice,
       announcement, unlock, openFile, togglePlay, skip, markLoopStart, markLoopEnd, clearLoop, beginScrub, commitScrub, setSemitones,
       setOriginalPreview, startExportNow, cancelExport, saveOrShare,
     ],
