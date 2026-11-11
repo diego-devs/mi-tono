@@ -9,6 +9,7 @@ PWA para probar canciones MP3 en distintos tonos (−12 a +12 semitonos) y expor
 - Compara “Original” y “Mi tono” sin perder el ajuste elegido.
 - Salta ±10 s y repite un fragmento con el **bucle A–B** (no afecta a la exportación, que es la canción completa).
 - Cambia la **velocidad de práctica** (50–125 %) sin alterar el tono; es solo para escuchar: la exportación siempre usa la velocidad original.
+- Añade la **letra y los acordes** de cada canción, pegados por ti (notación inglesa o latina, sobre la letra o entre corchetes `[Am]`): se guardan en el dispositivo y los acordes se transponen al instante con el tono elegido, con `♯`/`♭` a elección.
 - Recuerda el tono de cada canción (por nombre y tamaño del archivo, solo en este dispositivo; últimas 50).
 - Exporta la canción completa (MP3, 192 kbps, mono o estéreo según el original) con el ajuste fijo elegido.
 - Funciona sin conexión después de una primera visita con internet.

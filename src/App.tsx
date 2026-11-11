@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Help } from './components/Help';
 import { LoopControl } from './components/LoopControl';
 import { PitchControl } from './components/PitchControl';
+import { SongSheet } from './components/SongSheet';
 import { TempoControl } from './components/TempoControl';
 import { Transport } from './components/Transport';
 import { usePlayer } from './hooks/usePlayer';
@@ -114,6 +115,10 @@ export function App() {
       />
 
       <TempoControl tempo={player.tempo} disabled={controlsDisabled} onChange={player.setTempo} />
+
+      {ready && player.songId && (
+        <SongSheet key={player.songId} songId={player.songId} shift={player.originalPreview ? 0 : player.semitones} />
+      )}
 
       <ExportPanel
         state={player.exportState}

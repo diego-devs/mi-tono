@@ -21,5 +21,6 @@ Preparación: abrir la app por HTTPS con conexión, esperar “Lista para usar s
 - [ ] Saltar ±10 s en reproducción y en pausa.
 - [ ] Bucle A–B: marcar A y B durante la reproducción; el fragmento se repite sin huecos largos ni clics fuertes; cambiar el tono dentro del bucle; “Quitar bucle” continúa la canción.
 - [ ] Velocidad: bajar a 75 % y 50 % durante la reproducción; el tono no cambia, sin clics ni cortes; comparar Original / Mi tono a esa velocidad; volver a 100 %; exportar con velocidad ≠ 100 % sigue dando la duración original.
+- [ ] Letra y acordes: pegar una hoja con acordes sobre la letra; bajar y subir semitonos y comprobar que los acordes se transponen; "Original" muestra los acordes escritos; probar Auto, ♯ y ♭; cerrar y reabrir la app con el mismo MP3 y comprobar que la hoja sigue ahí; el texto se puede seleccionar y una línea larga se desplaza en horizontal sin romper la pantalla.
 - [ ] Recordar tono: ajustar −3, cerrar la app, reabrir el mismo archivo → se restaura con aviso; con otro archivo empieza en 0.
 - [ ] Actualización: publicar una versión nueva; la app ofrece “Actualizar la app” solo en reposo; Ayuda → Versión cambia.

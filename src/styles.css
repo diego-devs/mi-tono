@@ -331,3 +331,52 @@ progress {
   flex: 1;
 }
 
+.sheet h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sheet-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.sheet-editor {
+  width: 100%;
+  min-height: 16rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #343842;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  resize: vertical;
+}
+
+.sheet-editor + .row .primary {
+  flex: 1;
+}
+
+.sheet-body {
+  margin: 0.75rem 0 0;
+  overflow-x: auto;
+  font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.chord-line {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sheet-tools {
+  margin-top: 0.5rem;
+}
+
+.sheet-tools .hint {
+  margin: 0;
+}

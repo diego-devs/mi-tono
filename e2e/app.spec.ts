@@ -59,6 +59,35 @@ test.beforeEach(async ({ page }) => {
   await page.goto(PROD);
 });
 
+test('sheet: paste chords + lyrics, transposes with the pitch, original shows the written chords, persists', async ({ page }) => {
+  const song = mp3File('hoja.mp3', 3, [440]);
+  await openSong(page, song);
+  await page.getByRole('button', { name: 'Añadir' }).click();
+  await page.getByLabel(/Pega aquí la letra/).fill('[Verso]\nC      G\nHello darkness\nAm     F');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  const body = page.getByTestId('sheet-body');
+  await expect(body).toContainText('Hello darkness');
+  await expect(body).toContainText('C      G');
+
+  await page.getByRole('button', { name: 'Bajar un semitono' }).click();
+  await page.getByRole('button', { name: 'Bajar un semitono' }).click();
+  await expect(body).toContainText('Bb     F');
+  await expect(body).toContainText('Gm     Eb');
+  await expect(page.getByTestId('sheet-shift')).toContainText('−2 semitonos');
+
+  await page.getByRole('button', { name: 'Original' }).click();
+  await expect(body).toContainText('C      G');
+  await expect(page.getByTestId('sheet-shift')).toContainText('tono original');
+  await page.getByRole('button', { name: 'Mi tono' }).click();
+
+  await page.getByRole('button', { name: 'Usar sostenidos' }).click();
+  await expect(body).toContainText('A#     F');
+
+  await page.reload();
+  await openSong(page, song);
+  await expect(page.getByTestId('sheet-body')).toContainText('Hello darkness');
+});
+
 test('auto-heal: if the app script fails to load, it clears caches and recovers on its own', async ({ page }) => {
   let blocked = false;
   await page.route('**/assets/index-*.js', (route) => {
